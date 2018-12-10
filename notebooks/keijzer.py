@@ -427,3 +427,25 @@ class SGDRScheduler(Callback):
     def on_train_end(self, logs={}):
         '''Set weights to the values from the end of the most recent cycle for best performance.'''
         self.model.set_weights(self.best_weights)
+
+        
+def mape(y_true, y_pred):
+    import keras.backend as K
+    """
+    Returns the mean absolute percentage error.
+    For examples on losses see:
+    https://github.com/keras-team/keras/blob/master/keras/losses.py
+    """
+    return (K.abs(y_true - y_pred) / K.abs(y_pred)) * 100
+
+def smape(y_true, y_pred):
+    import keras.backend as K
+    """
+    Returns the Symmetric mean absolute percentage error.
+    For examples on losses see:
+    https://github.com/keras-team/keras/blob/master/keras/losses.py
+    """
+    return (K.abs(y_pred - y_true) / ((K.abs(y_true) + K.abs(y_pred))))*100
+
+def rmse(y_true, y_pred):
+        return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1)) 
