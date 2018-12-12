@@ -25,3 +25,7 @@ Target:
 - Convolutional neural network (CNN)
 - Timedistributed(CNN) -> RNN -> DNN
 ...
+
+# About the notebooks
+The notebooks are written in order.  
+Due to this reason certain information that has been put in notebook 2 might for example not appear in notebook 4 and so on.  
