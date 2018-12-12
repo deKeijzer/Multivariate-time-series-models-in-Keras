@@ -203,7 +203,7 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     return agg
 
 
-def df_to_lstm_format(df, test_size=0.5, look_back=5, target_column='target', scale_X=True):
+def df_to_cnn_rnn_format(df, train_size=0.5, look_back=5, target_column='target', scale_X=True):
     """
     TODO: output train and test datetime
     Input is a Pandas DataFrame. 
@@ -226,7 +226,7 @@ def df_to_lstm_format(df, test_size=0.5, look_back=5, target_column='target', sc
     df = df.drop(columns=[target_column]) # Drop the original target column
     
     target_location = df.shape[1] - 1 # column index number of target
-    split_index = int(df.shape[0]*test_size) # the index at which to split df into train and test
+    split_index = int(df.shape[0]*train_size) # the index at which to split df into train and test
     
     # ...train
     X_train = df.values[:split_index, :target_location]
