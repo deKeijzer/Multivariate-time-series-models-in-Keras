@@ -1,5 +1,6 @@
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/deKeijzer/Multivariate-time-series-models-in-Keras/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/deKeijzer/Multivariate-time-series-models-in-Keras/master)  
+Click the above button to launch this repository as a notebook in your browser.  
 `Last updated: 13-12-2018`  
 This repository is currently being created, it is not yet finished.  
 If you have got any suggestions for the already finished notebooks, feel free to open an issue.
