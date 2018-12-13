@@ -57,8 +57,8 @@ They probably are in a 25 km radius from this weather station.
  <tr><td>WW</td><td>-</td><td>Weather- and station-code</td></tr>
 </tbody></table>
 
-## Data used
-The original data has been resampled to an hour.  
+## Used data
+The original data has been resampled to an hour, this is the data available in this repository.  
 
 Features: 
 - Electrical power consumption (ePower)
