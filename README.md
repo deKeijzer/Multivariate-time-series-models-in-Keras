@@ -1,9 +1,10 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/deKeijzer/Multivariate-time-series-models-in-Keras/master)  
 Click the above button to launch this repository as a notebook in your browser.  
-`Last updated: 13-12-2018`  
+`Last updated of the README: 14-12-2018`  
 This repository is currently being created, it is not yet finished.  
-If you have got any suggestions for the already finished notebooks, feel free to open an issue.
+If you have got any suggestions for the already finished notebooks, feel free to open an issue.  
+The notebooks in the repository look the best when using Jupyter.
 
 # Multivariate Time Series Models in Keras
 
@@ -79,4 +80,4 @@ Target:
 
 # About the notebooks
 The notebooks are written in order.  
-Due to this reason certain information that has been put in notebook 2 might for example not appear in notebook 4 and so on.  
+Due to this reason certain information that has been put in notebook 2 might for example not appear in notebook 3 and so on.  
