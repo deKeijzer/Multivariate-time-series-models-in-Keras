@@ -10,7 +10,7 @@ import dask.dataframe as dd
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout, Flatten
 from keras.layers.recurrent import LSTM
-from keras.layers import Dense, Conv1D, MaxPool2D, Flatten, Dropout
+from keras.layers import Dense, Conv1D, MaxPool2D, Flatten, Dropout, CuDNNLSTM
 from keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
 from keras.optimizers import Adam, SGD, Nadam
 from time import time
@@ -52,58 +52,52 @@ def data():
     
     # Create train and test set
     
-    X = data.drop(['gasPower'], axis=1)
-    #print('X columns: %s' % list(X.columns))
-
-    y = data['gasPower']
-
-    #X = np.array(X).reshape(-1,len(X.columns)) # Reshape to required dimensions for sklearn
-    #y = np.array(y).reshape(-1,1)
-
+    look_back = 5*24 # D -> 5, H -> 5*24
+    num_features = data.shape[1] - 1
+    output_dim = 1
     train_size = 0.7
+
+    X_train, y_train, X_test, y_test = df_to_cnn_rnn_format(df=data, train_size=train_size, look_back=look_back, target_column='gasPower', scale_X=True)
+
     val_size= 0.2 # The validation size of the train set
 
     # Split train & test
     split_index_val = int(data.shape[0]*(train_size-val_size)) # the index at which to split df into train and test
     split_index_test = int(data.shape[0]*train_size) # the index at which to split df into train and test
-
-    X_train = X[:split_index_val]
-    X_val = X[split_index_val:split_index_test]
-    X_test = X[split_index_test:]
-
-    y_train = y[:split_index_val]
-    y_val = y[split_index_val:split_index_test]
-    y_test = y[split_index_test:]
     
-    # Scaling the features
-    scalerX = StandardScaler(with_mean=True, with_std=True).fit(X_train)
+    X_val = X_train[split_index_val:] # TODO: only fit scaler on the train data
+    X_train = X_train[:split_index_val]
 
-    X_train = scalerX.transform(X_train)
-    X_val = scalerX.transform(X_val)
-    X_test = scalerX.transform(X_test)
+    y_val = y_train[split_index_val:]
+    y_train = y_train[:split_index_val]
     
     return X_train, y_train, X_val, y_val, X_test, y_test
     
 def create_model(X_train, y_train, X_test, y_test):
     model = Sequential()
-    model.add(Dense({{choice([32, 64, 128, 256])}}, input_shape=(X_train.shape[1],), kernel_initializer='TruncatedNormal'))
+    model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, input_shape=(look_back, num_features), return_sequences=True, kernel_initializer='TruncatedNormal'))
     model.add(LeakyReLU())
     model.add(Dropout({{uniform(0, 1)}}))
     
     for _ in range({{choice([0, 1, 2, 3, 4, 8, 16])}}):
-        model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512, 1024])}}, kernel_initializer='TruncatedNormal'))
+        model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(LeakyReLU())
         model.add(Dropout({{uniform(0, 1)}}))   
     
     for _ in range({{choice([0, 1, 2, 3, 4, 8, 16])}}):
-        model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512, 1024])}}, kernel_initializer='TruncatedNormal'))
+        model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(LeakyReLU())
         model.add(Dropout({{uniform(0, 1)}}))
     
     for _ in range({{choice([0, 1, 2, 3, 4, 8, 16])}}):
-        model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512, 1024])}}, kernel_initializer='TruncatedNormal'))
+        model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(LeakyReLU())
         model.add(Dropout({{uniform(0, 1)}}))
+    
+    model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=False))
+    model.add(LeakyReLU())
+    model.add(Dropout({{uniform(0, 1)}}))
+    
     
     for _ in range({{choice([0, 1, 2, 3, 4, 8, 16])}}):
         model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512, 1024])}}, kernel_initializer='TruncatedNormal'))
@@ -126,13 +120,13 @@ def create_model(X_train, y_train, X_test, y_test):
     
     
     model.compile(loss='mse', metrics=['mape'],
-                  optimizer='adam')
+                  optimizer={{choice(['nadam', 'adam'])}})
     
-    early_stopping_monitor = EarlyStopping(patience=100) # Not using earlystopping monitor for now, that's why patience is high
-    bs = 2**13
-    epoch_size = 1
+    early_stopping_monitor = EarlyStopping(patience=50) # Not using earlystopping monitor for now, that's why patience is high
+    bs = 1024
+    epoch_size = 3
     schedule = SGDRScheduler(min_lr=1e-5, #1e-5
-                                     max_lr=1e-2, # 1e-2
+                                     max_lr={{choice([1, 0.1, 0.3, 0.6, 0.01, 0.03, 0.06])}}, # 1e-2
                                      steps_per_epoch=np.ceil(epoch_size/bs),
                                      lr_decay=0.9,
                                      cycle_length=5, # 5

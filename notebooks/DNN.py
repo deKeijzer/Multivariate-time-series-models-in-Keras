@@ -86,88 +86,97 @@ def data():
     
 def create_model(X_train, y_train, X_test, y_test):
     model = Sequential()
-    model.add(Dense({{choice([32, 64, 128, 256])}}, input_shape=(X_train.shape[1],), kernel_initializer='TruncatedNormal'))
+    model.add(Dense(128, input_shape=(X_train.shape[1],), kernel_initializer='TruncatedNormal'))
     model.add(LeakyReLU())
-    model.add(Dropout({{uniform(0, 1)}}))
+    model.add(Dropout(0.72))
     
-    for _ in range({{choice([0, 1, 2, 3, 4, 8, 16])}}):
-        model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512, 1024])}}, kernel_initializer='TruncatedNormal'))
+    #1
+    for _ in range(2):
+        model.add(Dense(256, kernel_initializer='TruncatedNormal'))
         model.add(LeakyReLU())
-        model.add(Dropout({{uniform(0, 1)}}))   
+        model.add(Dropout(0.97))   
     
-    for _ in range({{choice([0, 1, 2, 3, 4, 8, 16])}}):
-        model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512, 1024])}}, kernel_initializer='TruncatedNormal'))
+    #2
+    for _ in range(2):
+        model.add(Dense(512, kernel_initializer='TruncatedNormal'))
         model.add(LeakyReLU())
-        model.add(Dropout({{uniform(0, 1)}}))
+        model.add(Dropout(0.35))
     
-    for _ in range({{choice([0, 1, 2, 3, 4, 8, 16])}}):
-        model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512, 1024])}}, kernel_initializer='TruncatedNormal'))
+    #3
+    for _ in range(1):
+        model.add(Dense(512, kernel_initializer='TruncatedNormal'))
         model.add(LeakyReLU())
-        model.add(Dropout({{uniform(0, 1)}}))
+        model.add(Dropout(0.53))
     
-    for _ in range({{choice([0, 1, 2, 3, 4, 8, 16])}}):
-        model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512, 1024])}}, kernel_initializer='TruncatedNormal'))
+    #4
+    for _ in range(16):
+        model.add(Dense(512, kernel_initializer='TruncatedNormal'))
         model.add(LeakyReLU())
-        model.add(Dropout({{uniform(0, 1)}}))
+        model.add(Dropout(0.02))
     
-    for _ in range({{choice([0, 1, 2, 3, 4, 8, 16])}}):
-        model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512, 1024])}}, kernel_initializer='TruncatedNormal'))
+    #5
+    for _ in range(0):
+        model.add(Dense(512, kernel_initializer='TruncatedNormal'))
         model.add(LeakyReLU())
-        model.add(Dropout({{uniform(0, 1)}}))
+        model.add(Dropout(0.82))
   
-    model.add(Dense({{choice([8, 16, 32, 64, 128, 256, 512, 1024, 2048])}}, kernel_initializer='TruncatedNormal'))
+    #6
+    model.add(Dense(512, kernel_initializer='TruncatedNormal'))
     model.add(LeakyReLU())
-    model.add(Dropout({{uniform(0, 1)}}))
+    model.add(Dropout(0.48))
         
     model.add(Dense(1))
-
-    adam = Adam(lr={{uniform(1e-5, 1e-1)}})
-    nadam = Nadam(lr={{uniform(1e-5, 1e-1)}})
-    
     
     model.compile(loss='mse', metrics=['mape'],
-                  optimizer='adam')
+                  optimizer='nadam')
     
-    early_stopping_monitor = EarlyStopping(patience=100) # Not using earlystopping monitor for now, that's why patience is high
+    early_stopping_monitor = EarlyStopping(patience=50000) # Not using earlystopping monitor for now, that's why patience is high
     bs = 2**13
     epoch_size = 1
     schedule = SGDRScheduler(min_lr=1e-5, #1e-5
                                      max_lr=1e-2, # 1e-2
                                      steps_per_epoch=np.ceil(epoch_size/bs),
                                      lr_decay=0.9,
-                                     cycle_length=5, # 5
+                                     cycle_length=10, # 5
                                      mult_factor=1.5)
+    
+    filepath="models\\DNN.best.hdf5" # Save it in the models folder with name DNN.best and filetype hdf5
+    checkpoint = ModelCheckpoint(filepath, monitor='val_mape', verbose=1, save_best_only=True, mode='min')
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=500,
+              epochs=50000,
               verbose=2,
-              validation_split=0.1,
-                       callbacks=[early_stopping_monitor, schedule])
+              validation_data=(X_val, y_val),
+                       callbacks=[early_stopping_monitor, schedule, checkpoint])
     
+    pd.DataFrame(result.history).to_csv('models\\DNN_fit_history.csv')
     #get the highest validation accuracy of the training epochs
     validation_loss = np.amin(result.history['val_loss']) 
-    print('Best validation loss of epoch:', validation_loss)
-    return {'loss': -validation_loss, 'status': STATUS_OK, 'model': model}
+    print('validation loss of epoch:', validation_loss)
+    return model
 
 
     
 if __name__ == '__main__':
-    best_run, best_model, space = optim.minimize(model=create_model, 
-                                          data=data,
-                                          algo=tpe.suggest,
-                                          max_evals=50,
-                                          trials=Trials(),
-                                          eval_space=True,
-                                          return_space=True)
-    
     X_train, y_train, X_val, y_val, X_test, y_test = data()
-    print("Evalutation of best performing model:")
-    print(best_model.evaluate(X_val, y_val))
-    print("Best performing model chosen hyper-parameters:")
-    print(best_run)
     
-    #from hyperas.utils import eval_hyperopt_space
-    #real_param_values = eval_hyperopt_space(space, best_run)
-    #print('----------')
-    #print(real_param_values)
+    """
+    GTX 960m and GTX 970 support FP32
+    """
+
+    from keras import backend as K
+
+    float_type ='float32' # Change this to float16 to use FP16
+    K.set_floatx(float_type)
+    K.set_epsilon(1e-4) #default is 1e-7
+
+    X_train = X_train.astype(float_type)
+    y_train = y_train.astype(float_type)
+    X_test = X_test.astype(float_type)
+    y_test = y_test.astype(float_type)
+    
+    model = create_model(X_train, y_train, X_test, y_test)
+    
+    #print("Evalutation of best performing model:")
+    #print(model.evaluate(X_test, y_test))
