@@ -1,7 +1,7 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/deKeijzer/Multivariate-time-series-models-in-Keras/master)  
 Click the above button to launch this repository as a notebook in your browser.  
-`Last updated of the README: 14-12-2018`  
+`Last updated of the README: 24-12-2018`  
 This repository is currently being created, it is not yet finished.  
 If you have got any suggestions for the already finished notebooks, feel free to open an issue.  
 The notebooks in the repository look the best when using Jupyter.
@@ -81,5 +81,5 @@ Target:
 # About the notebooks
 The notebooks are written in order.  
 Due to this reason certain information that has been put in notebook 2 might for example not appear in notebook 3 and so on.  
-The `notebooks\\hyperas\\` folder contains the Python scripts that use [Hyperas](https://github.com/maxpumperla/hyperas) for the hyperparameter optimazation.    
+The `notebooks\\hyperas\\` folder contains the Python scripts that use [Hyperas](https://github.com/maxpumperla/hyperas) for the hyperparameter optimazation.  
 The `notebooks\\scripts` folder contains the `.py` versions of the notebooks, these train way quicker (e.g. 50 epochs/s instead of 2 epochs/s) than training from within Jupyter.  
