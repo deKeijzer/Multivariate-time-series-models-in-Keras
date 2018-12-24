@@ -81,5 +81,5 @@ Target:
 # About the notebooks
 The notebooks are written in order.  
 Due to this reason certain information that has been put in notebook 2 might for example not appear in notebook 3 and so on.  
-The `notebooks\\hyperas\\` folder contains the Python scripts that use [Hyperas](https://github.com/maxpumperla/hyperas) for the hyperparameter optimazation.  
-The `notebooks\\scripts` folder contains the `.py` versions of the notebooks, these train way quicker (e.g. 50 epochs/s instead of 2 epochs/s) than training from within Jupyter.  
+The `hyperas MODEL.py` files contains the Python scripts that use [Hyperas](https://github.com/maxpumperla/hyperas) for the hyperparameter optimazation.  
+The `MODEL.py` files contains the `.py` versions of the notebooks, these train way quicker than training from within Jupyter (e.g. 50 epochs/s instead of 2 epochs/s, for DNN).  
