@@ -58,18 +58,6 @@ def data():
     train_size = 0.7
 
     X_train, y_train, X_test, y_test = df_to_cnn_rnn_format(df=data, train_size=train_size, look_back=look_back, target_column='gasPower', scale_X=True)
-
-    val_size= 0.2 # The validation size of the train set
-
-    # Split train & test
-    split_index_val = int(data.shape[0]*(train_size-val_size)) # the index at which to split df into train and test
-    split_index_test = int(data.shape[0]*train_size) # the index at which to split df into train and test
-    
-    X_val = X_train[split_index_val:] # TODO: only fit scaler on the train data
-    X_train = X_train[:split_index_val]
-
-    y_val = y_train[split_index_val:]
-    y_train = y_train[:split_index_val]
     
     return X_train, y_train, X_val, y_val, X_test, y_test
     
@@ -122,11 +110,11 @@ def create_model(X_train, y_train, X_test, y_test):
     model.compile(loss='mse', metrics=['mape'],
                   optimizer={{choice(['nadam', 'adam'])}})
     
-    early_stopping_monitor = EarlyStopping(patience=50) # Not using earlystopping monitor for now, that's why patience is high
-    bs = 1024
-    epoch_size = 3
+    early_stopping_monitor = EarlyStopping(patience=5) # Not using earlystopping monitor for now, that's why patience is high
+    bs = 256
+    epoch_size = 14
     schedule = SGDRScheduler(min_lr=1e-5, #1e-5
-                                     max_lr={{choice([1, 0.1, 0.3, 0.6, 0.01, 0.03, 0.06])}}, # 1e-2
+                                     max_lr={{choice([0.1, 0.06, 0.03, 0.01, 0.006, 0.003, 0.001])}}, # 1e-2
                                      steps_per_epoch=np.ceil(epoch_size/bs),
                                      lr_decay=0.9,
                                      cycle_length=5, # 5
@@ -136,7 +124,7 @@ def create_model(X_train, y_train, X_test, y_test):
               batch_size=bs,
               epochs=500,
               verbose=2,
-              validation_split=0.1,
+              validation_split=0.2,
                        callbacks=[early_stopping_monitor, schedule])
     
     #get the highest validation accuracy of the training epochs

@@ -22,6 +22,8 @@ from tensorflow.python.client import device_lib
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
+from keras.layers.normalization import BatchNormalization
+
 from livelossplot import PlotLossesKeras
 from hyperas import optim
 from hyperas.distributions import choice, uniform
@@ -86,44 +88,50 @@ def data():
     
 def create_model(X_train, y_train, X_test, y_test):
     model = Sequential()
-    model.add(Dense(128, input_shape=(X_train.shape[1],), kernel_initializer='TruncatedNormal'))
+    model.add(Dense(64, input_shape=(X_train.shape[1],), kernel_initializer='TruncatedNormal', use_bias=False))
+    model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.72))
+    model.add(Dropout(0.083))
     
-    #1
-    for _ in range(2):
-        model.add(Dense(256, kernel_initializer='TruncatedNormal'))
+    # 1
+    for _ in range(0):
+        model.add(Dense(32, kernel_initializer='TruncatedNormal', use_bias=False))
+        model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.97))   
+        model.add(Dropout(0.156))   
     
-    #2
-    for _ in range(2):
-        model.add(Dense(512, kernel_initializer='TruncatedNormal'))
+    # 2
+    for _ in range(0):
+        model.add(Dense(32, kernel_initializer='TruncatedNormal', use_bias=False))
+        model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.35))
+        model.add(Dropout(0.899))
     
     #3
-    for _ in range(1):
-        model.add(Dense(512, kernel_initializer='TruncatedNormal'))
+    for _ in range(2):
+        model.add(Dense(256, kernel_initializer='TruncatedNormal', use_bias=False))
+        model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.53))
-    
+        model.add(Dropout(0.144))
     #4
-    for _ in range(16):
-        model.add(Dense(512, kernel_initializer='TruncatedNormal'))
+    for _ in range(3):
+        model.add(Dense(256, kernel_initializer='TruncatedNormal', use_bias=False))
+        model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.02))
+        model.add(Dropout(0.080))
     
     #5
-    for _ in range(0):
-        model.add(Dense(512, kernel_initializer='TruncatedNormal'))
+    for _ in range(2):
+        model.add(Dense(128, kernel_initializer='TruncatedNormal', use_bias=False))
+        model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.82))
-  
+        model.add(Dropout(0.453))
+    
     #6
-    model.add(Dense(512, kernel_initializer='TruncatedNormal'))
+    model.add(Dense(64, kernel_initializer='TruncatedNormal', use_bias=False))
+    model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.48))
+    model.add(Dropout(0.556))
         
     model.add(Dense(1))
     
@@ -133,22 +141,23 @@ def create_model(X_train, y_train, X_test, y_test):
     early_stopping_monitor = EarlyStopping(patience=50000) # Not using earlystopping monitor for now, that's why patience is high
     bs = 2**13
     epoch_size = 1
-    schedule = SGDRScheduler(min_lr=1e-5, #1e-5
-                                     max_lr=1e-2, # 1e-2
+    schedule = SGDRScheduler(min_lr=7.7e-6, #1e-5
+                                     max_lr=2.9e-2, # 1e-2
                                      steps_per_epoch=np.ceil(epoch_size/bs),
                                      lr_decay=0.9,
-                                     cycle_length=10, # 5
+                                     cycle_length=25, # 5
                                      mult_factor=1.5)
     
-    filepath="models\\DNN.best.hdf5" # Save it in the models folder with name DNN.best and filetype hdf5
-    checkpoint = ModelCheckpoint(filepath, monitor='val_mape', verbose=1, save_best_only=True, mode='min')
+    checkpoint1 = ModelCheckpoint("models\\DNN.best_loss.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
+    checkpoint2 = ModelCheckpoint("models\\DNN.best_mape.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
+    checkpoint3 = ModelCheckpoint("models\\DNN.best_smape.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=50000,
+              epochs=100000,
               verbose=2,
               validation_data=(X_val, y_val),
-                       callbacks=[early_stopping_monitor, schedule, checkpoint])
+                       callbacks=[schedule, checkpoint1, checkpoint2, checkpoint3])
     
     pd.DataFrame(result.history).to_csv('models\\DNN_fit_history.csv')
     #get the highest validation accuracy of the training epochs
