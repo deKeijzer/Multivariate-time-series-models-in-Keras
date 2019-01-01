@@ -62,8 +62,8 @@ def data():
     #X = np.array(X).reshape(-1,len(X.columns)) # Reshape to required dimensions for sklearn
     #y = np.array(y).reshape(-1,1)
 
-    train_size = 0.7
-    val_size= 0.2 # The validation size of the train set
+    train_size = 0.9
+    val_size= 0.1 # The validation size of the train set
 
     # Split train & test
     split_index_val = int(data.shape[0]*(train_size-val_size)) # the index at which to split df into train and test
@@ -148,16 +148,18 @@ def create_model(X_train, y_train, X_test, y_test):
                                      cycle_length=25, # 5
                                      mult_factor=1.5)
     
-    checkpoint1 = ModelCheckpoint("models\\DNN.best_loss.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
-    checkpoint2 = ModelCheckpoint("models\\DNN.best_mape.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
-    checkpoint3 = ModelCheckpoint("models\\DNN.best_smape.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
+    checkpoint1 = ModelCheckpoint("models\\DNN.val_loss.hdf5", monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    checkpoint2 = ModelCheckpoint("models\\DNN.val_mape.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
+
+    checkpoint4 = ModelCheckpoint("models\\DNN.train_loss.hdf5", monitor='loss', verbose=1, save_best_only=True, mode='min')
+    checkpoint5 = ModelCheckpoint("models\\DNN.train_mape.hdf5", monitor='mape', verbose=1, save_best_only=True, mode='min')
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=100000,
+              epochs=10**4,
               verbose=2,
               validation_data=(X_val, y_val),
-                       callbacks=[schedule, checkpoint1, checkpoint2, checkpoint3])
+                       callbacks=[schedule, checkpoint1, checkpoint2])
     
     pd.DataFrame(result.history).to_csv('models\\DNN_fit_history.csv')
     #get the highest validation accuracy of the training epochs

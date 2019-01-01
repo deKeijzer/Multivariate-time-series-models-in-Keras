@@ -63,8 +63,8 @@ def data():
     #X = np.array(X).reshape(-1,len(X.columns)) # Reshape to required dimensions for sklearn
     #y = np.array(y).reshape(-1,1)
 
-    train_size = 0.7
-    val_size= 0.2 # The validation size of the train set
+    train_size = 0.9
+    val_size= 0.1 # The validation size of the train set
 
     # Split train & test
     split_index_val = int(data.shape[0]*(train_size-val_size)) # the index at which to split df into train and test

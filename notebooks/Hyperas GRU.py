@@ -10,7 +10,7 @@ import dask.dataframe as dd
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout, Flatten
 from keras.layers.recurrent import LSTM
-from keras.layers import Dense, Conv1D, MaxPool2D, Flatten, Dropout, CuDNNLSTM
+from keras.layers import Dense, Conv1D, MaxPool2D, Flatten, Dropout, CuDNNLSTM, CuDNNGRU
 from keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
 from keras.optimizers import Adam, SGD, Nadam
 from keras.layers.normalization import BatchNormalization
@@ -66,30 +66,30 @@ def data():
     
 def create_model(X_train, y_train, X_test, y_test):
     model = Sequential()
-    model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, input_shape=(look_back, num_features), return_sequences=True, kernel_initializer='TruncatedNormal'))
+    model.add(CuDNNGRU({{choice([4, 8, 16, 32])}}, input_shape=(look_back, num_features), return_sequences=True, kernel_initializer='TruncatedNormal'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
     model.add(Dropout({{uniform(0, 1)}}))
     
     for _ in range({{choice([0, 1, 2, 3, 4, 8])}}):
-        model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
+        model.add(CuDNNGRU({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
         model.add(Dropout({{uniform(0, 1)}}))   
     
     for _ in range({{choice([0, 1, 2, 3, 4, 8])}}):
-        model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
+        model.add(CuDNNGRU({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
         model.add(Dropout({{uniform(0, 1)}}))
     
     for _ in range({{choice([0, 1, 2, 3, 4, 8])}}):
-        model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
+        model.add(CuDNNGRU({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
         model.add(Dropout({{uniform(0, 1)}}))
     
-    model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=False))
+    model.add(CuDNNGRU({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=False))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
     model.add(Dropout({{uniform(0, 1)}}))
@@ -125,13 +125,15 @@ def create_model(X_train, y_train, X_test, y_test):
     
     bs = {{choice([32, 64, 128, 256])}}
     
+    epoch_size = 1
+    
     if bs == 32:
         epoch_size = 109
     elif bs == 64:
         epoch_size = 56
-    elif bs = 128:
+    elif bs == 128:
         epoch_size = 28
-    elif bs = 256:
+    elif bs == 256:
         epoch_size = 14
     
     #bs = 256
@@ -145,7 +147,7 @@ def create_model(X_train, y_train, X_test, y_test):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=5,
+              epochs=500,
               verbose=2,
               validation_split=0.2,
                        callbacks=[early_stopping_monitor, schedule])
@@ -165,7 +167,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=create_model, 
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=1,
+                                          max_evals=100,
                                           trials=Trials(),
                                           eval_space=True)
     

@@ -9,9 +9,11 @@ import dask.dataframe as dd
 
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout, Flatten
+from keras.layers import TimeDistributed
 from keras.layers.recurrent import LSTM
-from keras.layers import Dense, Conv1D, MaxPool2D, Flatten, Dropout
+from keras.layers import Dense, Conv1D, MaxPool2D, Flatten, Dropout, GRU, CuDNNLSTM
 from keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
+from keras.layers.normalization import BatchNormalization
 from keras.optimizers import Adam, SGD, Nadam
 from time import time
 from livelossplot import PlotLossesKeras
@@ -20,15 +22,6 @@ import tensorflow as tf
 from keras.utils.training_utils import multi_gpu_model
 from tensorflow.python.client import device_lib
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-
-from keras.layers.normalization import BatchNormalization
-
-from livelossplot import PlotLossesKeras
-from hyperas import optim
-from hyperas.distributions import choice, uniform
-from hyperopt import Trials, STATUS_OK, tpe
-
 
 from keijzer import *
 
@@ -53,85 +46,64 @@ def data():
     data = pd.get_dummies(data, columns=columns_to_category) # One hot encoding the categories
     
     # Create train and test set
+
+    look_back = 5*24 # D -> 5, H -> 5*24
+    num_features = data.shape[1] - 1
+    output_dim = 1
+    train_size = 0.7
+
+    X_train, y_train, X_test, y_test = df_to_cnn_rnn_format(df=data, train_size=train_size, look_back=look_back, target_column='gasPower', scale_X=True)
     
-    X = data.drop(['gasPower'], axis=1)
-    #print('X columns: %s' % list(X.columns))
-
-    y = data['gasPower']
-
-    #X = np.array(X).reshape(-1,len(X.columns)) # Reshape to required dimensions for sklearn
-    #y = np.array(y).reshape(-1,1)
-
-    train_size = 0.9
-    val_size= 0.1 # The validation size of the train set
-
-    # Split train & test
-    split_index_val = int(data.shape[0]*(train_size-val_size)) # the index at which to split df into train and test
-    split_index_test = int(data.shape[0]*train_size) # the index at which to split df into train and test
-
-    X_train = X[:split_index_val]
-    X_val = X[split_index_val:split_index_test]
-    X_test = X[split_index_test:]
-
-    y_train = y[:split_index_val]
-    y_val = y[split_index_val:split_index_test]
-    y_test = y[split_index_test:]
+    return X_train, y_train, X_test, y_test, look_back, num_features
     
-    # Scaling the features
-    scalerX = StandardScaler(with_mean=True, with_std=True).fit(X_train)
-
-    X_train = scalerX.transform(X_train)
-    X_val = scalerX.transform(X_val)
-    X_test = scalerX.transform(X_test)
-    
-    return X_train, y_train, X_val, y_val, X_test, y_test
-    
-def create_model(X_train, y_train, X_test, y_test):
+def create_model(X_train, y_train, X_test, y_test, look_back, num_features):
     model = Sequential()
-    model.add(Dense(64, input_shape=(X_train.shape[1],), kernel_initializer='TruncatedNormal', use_bias=False))
+    model.add(CuDNNLSTM(8, input_shape=(look_back, num_features), return_sequences=True, kernel_initializer='TruncatedNormal'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.083))
+    model.add(Dropout(0.135))
     
-    # 1
+    #1
     for _ in range(0):
-        model.add(Dense(32, kernel_initializer='TruncatedNormal', use_bias=False))
+        model.add(CuDNNLSTM(16, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.156))   
-    
-    # 2
+        model.add(Dropout(0))   
+    #2
     for _ in range(0):
-        model.add(Dense(32, kernel_initializer='TruncatedNormal', use_bias=False))
+        model.add(CuDNNLSTM(4, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.899))
-    
+        model.add(Dropout(0.696))
     #3
-    for _ in range(2):
-        model.add(Dense(256, kernel_initializer='TruncatedNormal', use_bias=False))
+    for _ in range(0):
+        model.add(CuDNNLSTM(8, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.144))
+        model.add(Dropout(0.752))
     #4
-    for _ in range(3):
-        model.add(Dense(256, kernel_initializer='TruncatedNormal', use_bias=False))
-        model.add(BatchNormalization())
-        model.add(LeakyReLU())
-        model.add(Dropout(0.080))
+    model.add(CuDNNLSTM(16, kernel_initializer='TruncatedNormal', return_sequences=False))
+    model.add(BatchNormalization())
+    model.add(LeakyReLU())
+    model.add(Dropout(0.069))
     
     #5
-    for _ in range(2):
-        model.add(Dense(128, kernel_initializer='TruncatedNormal', use_bias=False))
+    for _ in range(3):
+        model.add(Dense(128, kernel_initializer='TruncatedNormal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.453))
-    
+        model.add(Dropout(0.240))
     #6
-    model.add(Dense(64, kernel_initializer='TruncatedNormal', use_bias=False))
+    for _ in range(2):
+        model.add(Dense(8, kernel_initializer='TruncatedNormal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU())
+        model.add(Dropout(0.636))
+    #7
+    model.add(Dense(16, kernel_initializer='TruncatedNormal'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.556))
+    model.add(Dropout(0.420))
         
     model.add(Dense(1))
     
@@ -139,29 +111,29 @@ def create_model(X_train, y_train, X_test, y_test):
                   optimizer='nadam')
     
     early_stopping_monitor = EarlyStopping(patience=50000) # Not using earlystopping monitor for now, that's why patience is high
-    bs = 2**13
-    epoch_size = 1
-    schedule = SGDRScheduler(min_lr=7.7e-6, #1e-5
-                                     max_lr=2.9e-2, # 1e-2
+    bs = 256
+    epoch_size = 14
+    schedule = SGDRScheduler(min_lr=8.3e-6, #1e-5
+                                     max_lr=3.3e-2, # 1e-2
                                      steps_per_epoch=np.ceil(epoch_size/bs),
                                      lr_decay=0.9,
-                                     cycle_length=25, # 5
+                                     cycle_length=5, # 5
                                      mult_factor=1.5)
     
-    checkpoint1 = ModelCheckpoint("models\\DNN.val_loss.hdf5", monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-    checkpoint2 = ModelCheckpoint("models\\DNN.val_mape.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
+    checkpoint1 = ModelCheckpoint("models\\LSTM.val_loss.hdf5", monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    checkpoint2 = ModelCheckpoint("models\\LSTM.val_mape.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
 
-    checkpoint4 = ModelCheckpoint("models\\DNN.train_loss.hdf5", monitor='loss', verbose=1, save_best_only=True, mode='min')
-    checkpoint5 = ModelCheckpoint("models\\DNN.train_mape.hdf5", monitor='mape', verbose=1, save_best_only=True, mode='min')
+    checkpoint4 = ModelCheckpoint("models\\LSTM.train_loss.hdf5", monitor='loss', verbose=1, save_best_only=True, mode='min')
+    checkpoint5 = ModelCheckpoint("models\\LSTM.train_mape.hdf5", monitor='mape', verbose=1, save_best_only=True, mode='min')
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=10**4,
-              verbose=2,
-              validation_data=(X_val, y_val),
+              epochs=70*10**3,
+              verbose=1,
+              validation_split=0.2,
                        callbacks=[schedule, checkpoint1, checkpoint2])
     
-    pd.DataFrame(result.history).to_csv('models\\DNN_fit_history.csv')
+    pd.DataFrame(result.history).to_csv('models\\LSTM_fit_history.csv')
     #get the highest validation accuracy of the training epochs
     validation_loss = np.amin(result.history['val_loss']) 
     print('validation loss of epoch:', validation_loss)
@@ -170,7 +142,7 @@ def create_model(X_train, y_train, X_test, y_test):
 
     
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test = data()
+    X_train, y_train, X_test, y_test, look_back, num_features = data()
     
     """
     GTX 960m and GTX 970 support FP32
@@ -187,7 +159,7 @@ if __name__ == '__main__':
     X_test = X_test.astype(float_type)
     y_test = y_test.astype(float_type)
     
-    model = create_model(X_train, y_train, X_test, y_test)
+    model = create_model(X_train, y_train, X_test, y_test, look_back, num_features)
     
     #print("Evalutation of best performing model:")
     #print(model.evaluate(X_test, y_test))
