@@ -39,7 +39,7 @@ num_gpu = setup_multi_gpus()
 
 def data():
     # Loading the data
-    df = pd.read_csv("F:\\Jupyterlab\\Multivariate-time-series-models-in-Keras\\data\\house_data_processed.csv", delimiter='\t', parse_dates=['datetime'])
+    df = pd.read_csv("D:\\Brian\\Jupyterlab\\Multivariate-time-series-models-in-Keras\\data\\house_data_processed.csv", delimiter='\t', parse_dates=['datetime'])
     df = df.set_index(['datetime']) 
 
     magnitude = 1 # Take this from the 1. EDA & Feauture engineering notebook. It's the factor where gasPower has been scaled with to the power 10.

@@ -39,7 +39,7 @@ num_gpu = setup_multi_gpus()
 
 def data():
     # Loading the data
-    df = pd.read_csv("F:\\Jupyterlab\\Multivariate-time-series-models-in-Keras\\data\\house_data_processed.csv", delimiter='\t', parse_dates=['datetime'])
+    df = pd.read_csv("D:\\Brian\\Jupyterlab\\Multivariate-time-series-models-in-Keras\\data\\house_data_processed.csv", delimiter='\t', parse_dates=['datetime'])
     df = df.set_index(['datetime']) 
 
     magnitude = 1 # Take this from the 1. EDA & Feauture engineering notebook. It's the factor where gasPower has been scaled with to the power 10.
@@ -118,8 +118,8 @@ def create_model(X_train, y_train, X_test, y_test):
     #nadam = Nadam(lr={{uniform(1e-5, 1e-1)}})
     
     
-    model.compile(loss='mse', metrics=['mape'],
-                  optimizer={{choice(['adadelta', 'adagrad', 'adam', 'nadam'])}})
+    model.compile(loss='mse', metrics=['mape'], optimizer='nadam')
+                  #optimizer={{choice(['adadelta', 'adagrad', 'adam', 'nadam'])}})
     
     early_stopping_monitor = EarlyStopping(patience=100) # Not using earlystopping monitor for now, that's why patience is high
     
@@ -129,9 +129,9 @@ def create_model(X_train, y_train, X_test, y_test):
         epoch_size = 109
     elif bs == 64:
         epoch_size = 56
-    elif bs = 128:
+    elif bs == 128:
         epoch_size = 28
-    elif bs = 256:
+    elif bs == 256:
         epoch_size = 14
     
     #bs = 256
@@ -145,7 +145,7 @@ def create_model(X_train, y_train, X_test, y_test):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=5,
+              epochs=500,
               verbose=2,
               validation_split=0.2,
                        callbacks=[early_stopping_monitor, schedule])
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=create_model, 
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=1,
+                                          max_evals=100,
                                           trials=Trials(),
                                           eval_space=True)
     

@@ -62,29 +62,29 @@ def data():
     #X = np.array(X).reshape(-1,len(X.columns)) # Reshape to required dimensions for sklearn
     #y = np.array(y).reshape(-1,1)
 
-    train_size = 0.9
-    val_size= 0.1 # The validation size of the train set
+    train_size = 0.7
+    #val_size= 0.1 # The validation size of the train set
 
     # Split train & test
-    split_index_val = int(data.shape[0]*(train_size-val_size)) # the index at which to split df into train and test
+    #split_index_val = int(data.shape[0]*(train_size-val_size)) # the index at which to split df into train and test
     split_index_test = int(data.shape[0]*train_size) # the index at which to split df into train and test
 
-    X_train = X[:split_index_val]
-    X_val = X[split_index_val:split_index_test]
+    X_train = X[:split_index_test]
+    #X_val = X[split_index_val:split_index_test]
     X_test = X[split_index_test:]
 
-    y_train = y[:split_index_val]
-    y_val = y[split_index_val:split_index_test]
+    y_train = y[:split_index_test]
+    #y_val = y[split_index_val:split_index_test]
     y_test = y[split_index_test:]
     
     # Scaling the features
     scalerX = StandardScaler(with_mean=True, with_std=True).fit(X_train)
 
     X_train = scalerX.transform(X_train)
-    X_val = scalerX.transform(X_val)
+    #X_val = scalerX.transform(X_val)
     X_test = scalerX.transform(X_test)
     
-    return X_train, y_train, X_val, y_val, X_test, y_test
+    return X_train, y_train, X_test, y_test
     
 def create_model(X_train, y_train, X_test, y_test):
     model = Sequential()
@@ -156,9 +156,9 @@ def create_model(X_train, y_train, X_test, y_test):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=10**4,
+              epochs=35*10**3, # this should take ~ one hour
               verbose=2,
-              validation_data=(X_val, y_val),
+              validation_split=0.2,
                        callbacks=[schedule, checkpoint1, checkpoint2])
     
     pd.DataFrame(result.history).to_csv('models\\DNN_fit_history.csv')
@@ -170,7 +170,7 @@ def create_model(X_train, y_train, X_test, y_test):
 
     
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test = data()
+    X_train, y_train, X_test, y_test = data()
     
     """
     GTX 960m and GTX 970 support FP32
