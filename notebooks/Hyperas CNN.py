@@ -73,7 +73,7 @@ def create_model(X_train, y_train, X_test, y_test):
     ks2_first = {{choice([2, 3, 4, 5, 8, 10])}}
     ks2_second = {{choice([2, 3, 4, 5, 8, 10])}}
     
-    model.add(Conv2D(filters=( {{choice([1, 2, 3, 4, 5, 8, 16, 32])}} ), 
+    model.add(Conv2D(filters=( {{choice([1, 2, 3, 4, 5, 8, 12])}} ), 
                      kernel_size=(ks1_first, ks1_second),
                      input_shape=input_shape, 
                      padding='same',
@@ -83,7 +83,7 @@ def create_model(X_train, y_train, X_test, y_test):
     model.add(Dropout( {{uniform(0, 1)}} ))
     
     for _ in range( {{choice([0, 1, 2, 3])}} ):
-        model.add(Conv2D(filters=( {{choice([4, 8, 16, 32])}} ), 
+        model.add(Conv2D(filters=( {{choice([4, 8, 12])}} ), 
                      kernel_size= (ks2_first, ks2_second), 
                          padding='same',
                      kernel_initializer='TruncatedNormal'))
@@ -140,7 +140,7 @@ def create_model(X_train, y_train, X_test, y_test):
     result = model.fit(X_train, y_train,
               batch_size=bs,
               epochs=500,
-              verbose=2,
+              verbose=1,
               validation_split=0.2,
                        callbacks=[early_stopping_monitor, schedule])
     
