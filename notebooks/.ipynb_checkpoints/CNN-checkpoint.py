@@ -9,12 +9,11 @@ import dask.dataframe as dd
 
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout, Flatten
-from keras.layers import TimeDistributed
 from keras.layers.recurrent import LSTM
-from keras.layers import Dense, Conv1D, MaxPool2D, Flatten, Dropout, GRU, CuDNNLSTM
+from keras.layers import Dense, Conv1D, MaxPool2D, Flatten, Dropout, CuDNNLSTM, CuDNNGRU, Conv2D, MaxPooling2D
 from keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
-from keras.layers.normalization import BatchNormalization
 from keras.optimizers import Adam, SGD, Nadam
+from keras.layers.normalization import BatchNormalization
 from time import time
 from livelossplot import PlotLossesKeras
 from keras.layers.advanced_activations import LeakyReLU, PReLU
@@ -22,6 +21,15 @@ import tensorflow as tf
 from keras.utils.training_utils import multi_gpu_model
 from tensorflow.python.client import device_lib
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+from keras import backend as K
+
+from livelossplot import PlotLossesKeras
+from hyperas import optim
+from hyperas.distributions import choice, uniform
+from hyperopt import Trials, STATUS_OK, tpe
+
 
 from keijzer import *
 
@@ -30,80 +38,77 @@ num_gpu = setup_multi_gpus()
 
 
 def data():
-    # Loading the data
     df = pd.read_csv("F:\\Jupyterlab\\Multivariate-time-series-models-in-Keras\\data\\house_data_processed.csv", delimiter='\t', parse_dates=['datetime'])
     df = df.set_index(['datetime']) 
 
-    magnitude = 1 # Take this from the 1. EDA & Feauture engineering notebook. It's the factor where gasPower has been scaled with to the power 10.
-    
-    # Preprocessing
+    magnitude = 1
+
     data = df.copy()
     
     columns_to_category = ['hour', 'dayofweek', 'season']
-    data[columns_to_category] = data[columns_to_category].astype('category') # change datetypes to category
+    data[columns_to_category] = data[columns_to_category].astype('category') 
+    data = pd.get_dummies(data, columns=columns_to_category) 
     
-    # One hot encoding the dummy variables
-    data = pd.get_dummies(data, columns=columns_to_category) # One hot encoding the categories
-    
-    # Create train and test set
-
-    look_back = 5*24 # D -> 5, H -> 5*24
+    look_back = 5*24
     num_features = data.shape[1] - 1
     output_dim = 1
     train_size = 0.7
 
     X_train, y_train, X_test, y_test = df_to_cnn_rnn_format(df=data, train_size=train_size, look_back=look_back, target_column='gasPower', scale_X=True)
     
-    return X_train, y_train, X_test, y_test, look_back, num_features
+    X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], X_train.shape[2], 1)
+    X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], X_test.shape[2], 1)
+
     
-def create_model(X_train, y_train, X_test, y_test, look_back, num_features):
+    return X_train, y_train, X_test, y_test
+    
+def create_model(X_train, y_train, X_test, y_test):
+    input_shape = (X_train.shape[1], X_train.shape[2], X_train.shape[3])
+
     model = Sequential()
-    model.add(CuDNNLSTM(32, input_shape=(look_back, num_features), return_sequences=True, kernel_initializer='TruncatedNormal'))
-    model.add(BatchNormalization())
-    model.add(LeakyReLU())
-    model.add(Dropout(0.257))
     
-    #1
-    for _ in range(0):
-        model.add(CuDNNLSTM(16, kernel_initializer='TruncatedNormal', return_sequences=True))
-        model.add(BatchNormalization())
-        model.add(LeakyReLU())
-        model.add(Dropout(0.276))   
-    #2
-    for _ in range(8):
-        model.add(CuDNNLSTM(8, kernel_initializer='TruncatedNormal', return_sequences=True))
-        model.add(BatchNormalization())
-        model.add(LeakyReLU())
-        model.add(Dropout(0.204))
-    #3
-    for _ in range(0):
-        model.add(CuDNNLSTM(4, kernel_initializer='TruncatedNormal', return_sequences=True))
-        model.add(BatchNormalization())
-        model.add(LeakyReLU())
-        model.add(Dropout(0.226))
-    #4
-    model.add(CuDNNLSTM(32, kernel_initializer='TruncatedNormal', return_sequences=False))
-    model.add(BatchNormalization())
-    model.add(LeakyReLU())
-    model.add(Dropout(0.372))
+    ks1_first = 3
+    ks1_second = 8
     
-    #5
-    for _ in range(1):
-        model.add(Dense(4, kernel_initializer='TruncatedNormal'))
-        model.add(BatchNormalization())
-        model.add(LeakyReLU())
-        model.add(Dropout(0.352))
-    #6
-    for _ in range(1):
-        model.add(Dense(256, kernel_initializer='TruncatedNormal'))
-        model.add(BatchNormalization())
-        model.add(LeakyReLU())
-        model.add(Dropout(0.758))
-    #7
-    model.add(Dense(1024, kernel_initializer='TruncatedNormal'))
+    ks2_first = 4
+    ks2_second = 5
+    
+    model.add(Conv2D(filters=(3), 
+                     kernel_size=(ks1_first, ks1_second),
+                     input_shape=input_shape, 
+                     padding='same',
+                     kernel_initializer='TruncatedNormal'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.207))
+    model.add(Dropout(0.025))
+    
+    for _ in range(2):
+        model.add(Conv2D(filters=(4), 
+                     kernel_size= (ks2_first, ks2_second), 
+                         padding='same',
+                     kernel_initializer='TruncatedNormal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU())
+        model.add(Dropout(0.280))  
+    
+    model.add(Flatten())
+    
+    for _ in range(4):
+        model.add(Dense(64 , kernel_initializer='TruncatedNormal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU())
+        model.add(Dropout(0.435))
+    
+    for _ in range(3):
+        model.add(Dense(128 , kernel_initializer='TruncatedNormal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU())
+        model.add(Dropout(0.372))
+  
+    model.add(Dense(1024 , kernel_initializer='TruncatedNormal'))
+    model.add(BatchNormalization())
+    model.add(LeakyReLU())
+    model.add(Dropout(0.793))
         
     model.add(Dense(1))
     
@@ -111,29 +116,29 @@ def create_model(X_train, y_train, X_test, y_test, look_back, num_features):
                   optimizer='nadam')
     
     early_stopping_monitor = EarlyStopping(patience=50000) # Not using earlystopping monitor for now, that's why patience is high
-    bs = 256
-    epoch_size = 14
-    schedule = SGDRScheduler(min_lr=4.2e-6, #1e-5
-                                     max_lr=3.5e-2, # 1e-2
+    bs = 64
+    epoch_size = 56
+    schedule = SGDRScheduler(min_lr= 9e-7 ,
+                                     max_lr= 4.3e-3 ,
                                      steps_per_epoch=np.ceil(epoch_size/bs),
                                      lr_decay=0.9,
                                      cycle_length=5, # 5
                                      mult_factor=1.5)
     
-    checkpoint1 = ModelCheckpoint("models\\LSTM.val_loss.hdf5", monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-    checkpoint2 = ModelCheckpoint("models\\LSTM.val_mape.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
+    checkpoint1 = ModelCheckpoint("models\\CNN.val_loss.hdf5", monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    checkpoint2 = ModelCheckpoint("models\\CNN.val_mape.hdf5", monitor='val_mape', verbose=1, save_best_only=True, mode='min')
 
-    checkpoint4 = ModelCheckpoint("models\\LSTM.train_loss.hdf5", monitor='loss', verbose=1, save_best_only=True, mode='min')
-    checkpoint5 = ModelCheckpoint("models\\LSTM.train_mape.hdf5", monitor='mape', verbose=1, save_best_only=True, mode='min')
+    checkpoint4 = ModelCheckpoint("models\\CNN.train_loss.hdf5", monitor='loss', verbose=1, save_best_only=True, mode='min')
+    checkpoint5 = ModelCheckpoint("models\\CNN.train_mape.hdf5", monitor='mape', verbose=1, save_best_only=True, mode='min')
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=18*10**2, # 20e3, should take ~23 hours, 
+              epochs=10**4, # should take 24 hours
               verbose=1,
               validation_split=0.2,
                        callbacks=[schedule, checkpoint1, checkpoint2])
     
-    pd.DataFrame(result.history).to_csv('models\\LSTM_fit_history.csv')
+    pd.DataFrame(result.history).to_csv('models\\CNN_fit_history.csv')
     #get the highest validation accuracy of the training epochs
     validation_loss = np.amin(result.history['val_loss']) 
     print('validation loss of epoch:', validation_loss)
@@ -142,7 +147,7 @@ def create_model(X_train, y_train, X_test, y_test, look_back, num_features):
 
     
 if __name__ == '__main__':
-    X_train, y_train, X_test, y_test, look_back, num_features = data()
+    X_train, y_train, X_test, y_test = data()
     
     """
     GTX 960m and GTX 970 support FP32
@@ -159,7 +164,7 @@ if __name__ == '__main__':
     X_test = X_test.astype(float_type)
     y_test = y_test.astype(float_type)
     
-    model = create_model(X_train, y_train, X_test, y_test, look_back, num_features)
+    model = create_model(X_train, y_train, X_test, y_test)
     
     #print("Evalutation of best performing model:")
     #print(model.evaluate(X_test, y_test))
