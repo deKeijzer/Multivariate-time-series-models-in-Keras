@@ -44,7 +44,7 @@ The original data is as follows.
 This is weather data from the KNMI weather station in Rotterdam with a sample rate of 15 minutes.  
 A representative from OPSCHALER says that this weather station is the most nearby most of the dwellings, the exact dwelling locations however are unknown.  
 The dwelling furthest away from the weather station is 103 km north east.  
-When this weather data is used to make predictions on the validation and set dataset (which is future data for the model), this weather data is assumed to be the 'predictions' for the weather at given timestamp.   
+When this weather data is used to make predictions on the validation and test dataset (which is future data for the model), this weather data is assumed to be the 'predictions' for the weather at given timestamp.   
 In reality the weather predictions made by climate models should be used.
 
 <table class="tableizer-table">
