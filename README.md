@@ -1,9 +1,8 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/deKeijzer/Multivariate-time-series-models-in-Keras/master)  
 Click the above button to launch this repository as a notebook in your browser.  
-`Last updated of the README: 24-12-2018`  
+`Last updated of the README: 03-01-2019`  
 This repository is currently being created, it is not yet finished.  
-If you have got any suggestions for the already finished notebooks, feel free to open an issue.  
 The notebooks in the repository look the best when using Jupyter.
 
 # Multivariate Time Series Models in Keras
@@ -14,6 +13,13 @@ This repository contains a throughout explanation on how to create different dee
 # Jargon
 The jargon used in this repository. 
 - Dwelling: An individual house
+- EDA: Exploratory Data Annalysis  
+- MVLR: Multivariate Linear Regression
+- DNN: Deep Neural Network
+- CNN: Convolutional Neural Network
+- RNN: Recurrent Neural Network
+- LSTM: Long Short-Term Memory
+- GRU: Gated Recurrent Unit
 
 # The data
 
@@ -71,15 +77,18 @@ Features:
 Target:
 - Gas consumption (gasPower)
 
-# Models used
-- Deep neural network (DNN)
-- Recurrent neural networks: LSTM & GRU (RNN)
-- Convolutional neural network (CNN)
-- Timedistributed(CNN) -> RNN -> DNN
-...
-
 # About the notebooks
 The notebooks are written in order.  
-Due to this reason certain information that has been put in notebook 2 might for example not appear in notebook 3 and so on.  
+Due to this reason certain information that has been put in notebook 1 might for example not appear in notebook 2 and so on.  
 The `hyperas MODEL.py` files contains the Python scripts that use [Hyperas](https://github.com/maxpumperla/hyperas) for the hyperparameter optimazation.  
-The `MODEL.py` files contains the `.py` versions of the notebooks, these train way quicker than training from within Jupyter (e.g. 50 epochs/s instead of 2 epochs/s, for DNN).  
+The `MODEL.py` files contains the `.py` versions of the notebooks, these train  quicker than training from within Jupyter (e.g. 50 epochs/s instead of 2 epochs/s, for DNN).  
+
+1. [EDA & Feature engineering](https://github.com/deKeijzer/Multivariate-time-series-models-in-Keras/blob/master/notebooks/1.%20EDA%20%26%20Feature%20engineering.ipynb)  
+2. [MVLR](https://github.com/deKeijzer/Multivariate-time-series-models-in-Keras/blob/master/notebooks/2.%20MVLR%20.ipynb)
+3. [DNN](https://github.com/deKeijzer/Multivariate-time-series-models-in-Keras/blob/master/notebooks/3.%20DNN.ipynb)
+4.1 [CNN & RNN Data Preperation](https://github.com/deKeijzer/Multivariate-time-series-models-in-Keras/blob/master/notebooks/4.1%20CNN%20%26%20RNN%20Data%20Preperation.ipynb)
+4.2 [LSTM](https://github.com/deKeijzer/Multivariate-time-series-models-in-Keras/blob/master/notebooks/4.2%20LSTM.ipynb)
+4.3 [GRU](https://github.com/deKeijzer/Multivariate-time-series-models-in-Keras/blob/master/notebooks/4.3%20GRU.ipynb)
+5.1 [Multivariate time-series to images](https://github.com/deKeijzer/Multivariate-time-series-models-in-Keras/blob/master/notebooks/5.1%20Multivariate%20time-series%20to%20images.ipynb)
+5.2 [CNN]https://github.com/deKeijzer/Multivariate-time-series-models-in-Keras/blob/master/notebooks/5.2%20CNN.ipynb)
+6. [TimeDistributed(CNN)+RNN+DNN](https://github.com/deKeijzer/Multivariate-time-series-models-in-Keras/blob/master/notebooks/6.%20TimeDistributed(CNN)%2BRNN%2BDNN.ipynb)
