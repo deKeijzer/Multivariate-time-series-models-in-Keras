@@ -449,3 +449,67 @@ def smape(y_true, y_pred):
 
 def rmse(y_true, y_pred):
         return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1)) 
+    
+
+def downsample_results(x, y_pred, y_true, magnitude, resolution, model_name, savefig=False):
+    """
+    This function takes the hourly results and downsamples them to the given resolution.
+    
+    x, datetime values
+    y_pred, y predictions
+    y_true, y true values
+    magnitude, scaling factor for y axis
+    resolution, Pandas resample resolution e.g. 6H, D, W
+    model_name, string containing model name, e.g. 'MVLR'
+    savefig, wether to save the figure or not
+    """
+
+    # Make it a df to be able to downsample
+    datetime = x.index
+    print(datetime.shape)
+
+    y_pred = y_pred.reshape(y_pred.shape[0])
+    y_true = y_true.reshape(y_true.shape[0])
+
+    results = pd.DataFrame(y_true, y_pred) # For some reason y_true becomes the index
+    result = results.reset_index() # Ugly way to fix above problem
+    result.columns = ['y_pred', 'y_true']
+
+    result['datetime'] = datetime
+    result = result.set_index(['datetime'])
+
+    # Save the model results for later usage
+    result.to_csv('models\\MVLR_predictions.csv')
+
+    result = result.resample(resolution).sum() # Resample data
+
+    result = result.dropna()
+    
+    # Calculate evaluation metrics over the result
+
+    ytrue = result['y_true']
+    ypred = result['y_pred']
+    n = len(result)
+
+    # Recalculated the metrics for the downsampled results
+    mse_result = (1/n)*np.sum((ypred - ytrue)**2)
+    mape_result = (100/n) * np.sum(np.abs((ytrue - ypred) / ypred))
+    smape_result = (100/n) * np.sum( np.abs((ytrue - ypred)) / (np.abs(ytrue) + np.abs(ypred)) )
+
+    # Create plot
+    plt.figure(figsize=(20,10))
+    plt.plot(result.index, result['y_true'], '.-', color='red', label='Real values', alpha=0.5, ms=10) # ms is markersize
+    plt.plot(result.index, result['y_pred'], '.-', color='blue', label='Predicted values', ms=10)
+
+    plt.ylabel(r'gasPower $\cdot$ 10$^{-%s}$ [m$^3$/h]' % magnitude, fontsize=14)
+    plt.xlabel('datetime [-]', fontsize=14) #TODO: set x values as actual dates
+
+    plt.xticks(fontsize=14, rotation=45)
+    plt.yticks(fontsize=14)
+
+    plt.legend(loc='upper left', borderaxespad=0, frameon=False, fontsize=14, markerscale=3)
+
+    plt.title(model_name+' hourly predictions downsampled to '+resolution+' resolution. \n MSE = %.2f \n MAPE = %.1f [%%] \n SMAPE = %.1f [%%]' % (mse_result, mape_result, smape_result), fontsize = 14)
+    
+    if savefig:
+        plt.savefig('figures/MVLR_day.png', dpi=1300)

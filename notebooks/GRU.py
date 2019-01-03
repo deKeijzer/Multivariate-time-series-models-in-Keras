@@ -127,7 +127,7 @@ def create_model(X_train, y_train, X_test, y_test, look_back, num_features):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=2*10**2,
+              epochs=22*10**3, # should take 24h ish
               verbose=1,
               validation_split=0.2,
                        callbacks=[schedule, checkpoint1, checkpoint2])
