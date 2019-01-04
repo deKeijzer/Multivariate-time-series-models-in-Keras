@@ -479,7 +479,7 @@ def downsample_results(x, y_pred, y_true, magnitude, resolution, model_name, sav
     result = result.set_index(['datetime'])
 
     # Save the model results for later usage
-    result.to_csv('models\\MVLR_predictions.csv')
+    result.to_csv('models\\'+model_name+'_'+resolution+'_predictions.csv')
 
     result = result.resample(resolution).sum() # Resample data
 
