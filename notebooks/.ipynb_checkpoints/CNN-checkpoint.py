@@ -67,48 +67,48 @@ def create_model(X_train, y_train, X_test, y_test):
 
     model = Sequential()
     
-    ks1_first = 3
-    ks1_second = 8
+    ks1_first = 8
+    ks1_second = 4
     
-    ks2_first = 4
-    ks2_second = 5
+    ks2_first = 10
+    ks2_second = 8
     
-    model.add(Conv2D(filters=(3), 
+    model.add(Conv2D(filters=(5), 
                      kernel_size=(ks1_first, ks1_second),
                      input_shape=input_shape, 
                      padding='same',
                      kernel_initializer='TruncatedNormal'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.025))
+    model.add(Dropout(0.612))
     
-    for _ in range(2):
-        model.add(Conv2D(filters=(4), 
+    for _ in range(1):
+        model.add(Conv2D(filters=(8), 
                      kernel_size= (ks2_first, ks2_second), 
                          padding='same',
                      kernel_initializer='TruncatedNormal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.280))  
+        model.add(Dropout(0.250))  
     
     model.add(Flatten())
     
-    for _ in range(4):
+    for _ in range(2):
         model.add(Dense(64 , kernel_initializer='TruncatedNormal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.435))
+        model.add(Dropout(0.447))
     
-    for _ in range(3):
+    for _ in range(2):
         model.add(Dense(128 , kernel_initializer='TruncatedNormal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.372))
+        model.add(Dropout(0.030))
   
-    model.add(Dense(1024 , kernel_initializer='TruncatedNormal'))
+    model.add(Dense(256 , kernel_initializer='TruncatedNormal'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.793))
+    model.add(Dropout(0.546))
         
     model.add(Dense(1))
     
@@ -116,10 +116,10 @@ def create_model(X_train, y_train, X_test, y_test):
                   optimizer='nadam')
     
     early_stopping_monitor = EarlyStopping(patience=50000) # Not using earlystopping monitor for now, that's why patience is high
-    bs = 64
-    epoch_size = 56
-    schedule = SGDRScheduler(min_lr= 9e-7 ,
-                                     max_lr= 4.3e-3 ,
+    bs = 32
+    epoch_size = 109
+    schedule = SGDRScheduler(min_lr= 5.6e-6 ,
+                                     max_lr= 1.9e-2 ,
                                      steps_per_epoch=np.ceil(epoch_size/bs),
                                      lr_decay=0.9,
                                      cycle_length=5, # 5
@@ -133,7 +133,7 @@ def create_model(X_train, y_train, X_test, y_test):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=10**4, # should take 24 hours
+              epochs=8*10**3, # should take 24 hours
               verbose=1,
               validation_split=0.2,
                        callbacks=[schedule, checkpoint1, checkpoint2])

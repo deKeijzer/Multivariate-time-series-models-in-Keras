@@ -19,6 +19,10 @@ from livelossplot import PlotLossesKeras
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 
+from hyperas import optim
+from hyperas.distributions import choice, uniform
+from hyperopt import Trials, STATUS_OK, tpe
+
 
 from keras.layers.advanced_activations import LeakyReLU, PReLU
 import tensorflow as tf
@@ -34,7 +38,7 @@ num_gpu = setup_multi_gpus()
 
 def data():
     # Loading the data
-    df = pd.read_csv("D:\\Brian\\Jupyterlab\\Multivariate-time-series-models-in-Keras\\data\\house_data_processed.csv", delimiter='\t', parse_dates=['datetime'])
+    df = pd.read_csv("F:\\Jupyterlab\\Multivariate-time-series-models-in-Keras\\data\\house_data_processed.csv", delimiter='\t', parse_dates=['datetime'])
     df = df.set_index(['datetime']) 
 
     magnitude = 1 # Take this from the 1. EDA & Feauture engineering notebook. It's the factor where gasPower has been scaled with to the power 10.
@@ -54,7 +58,7 @@ def data():
     num_features = data.shape[1] - 1
     output_dim = 1
     train_size = 0.7
-
+    
     X_train, y_train, X_test, y_test = df_to_cnn_rnn_format(df=data, train_size=train_size, look_back=look_back, target_column='gasPower', scale_X=True)
     
     return X_train, y_train, X_test, y_test
@@ -157,7 +161,7 @@ def create_model(X_train, y_train, X_test, y_test):
     model.compile(loss='mse', metrics=['mape'],
                   optimizer={{choice(['adadelta', 'adagrad', 'adam', 'nadam'])}})
     
-    early_stopping_monitor = EarlyStopping(patience=100) # Not using earlystopping monitor for now, that's why patience is high
+    early_stopping_monitor = EarlyStopping(patience=5) # Not using earlystopping monitor for now, that's why patience is high
     
     bs = {{choice([32, 64, 128, 256])}}
     
@@ -183,8 +187,8 @@ def create_model(X_train, y_train, X_test, y_test):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=500,
-              verbose=2,
+              epochs=50,
+              verbose=1,
               validation_split=0.2,
                        callbacks=[early_stopping_monitor, schedule])
     
@@ -203,7 +207,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=create_model, 
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=100,
+                                          max_evals=10,
                                           trials=Trials(),
                                           eval_space=True)
     
