@@ -39,7 +39,7 @@ num_gpu = setup_multi_gpus()
 
 def data():
     # Loading the data
-    df = pd.read_csv("D:\\Brian\\Jupyterlab\\Multivariate-time-series-models-in-Keras\\data\\house_data_processed.csv", delimiter='\t', parse_dates=['datetime'])
+    df = pd.read_csv("F:\\Jupyterlab\\Multivariate-time-series-models-in-Keras\\data\\house_data_processed.csv", delimiter='\t', parse_dates=['datetime'])
     df = df.set_index(['datetime']) 
 
     magnitude = 1 # Take this from the 1. EDA & Feauture engineering notebook. It's the factor where gasPower has been scaled with to the power 10.
@@ -75,18 +75,6 @@ def create_model(X_train, y_train, X_test, y_test):
         model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout({{uniform(0, 1)}}))   
-    
-    for _ in range({{choice([0, 1, 2, 3, 4, 8])}}):
-        model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
-        model.add(BatchNormalization())
-        model.add(LeakyReLU())
-        model.add(Dropout({{uniform(0, 1)}}))
-    
-    for _ in range({{choice([0, 1, 2, 3, 4, 8])}}):
-        model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
-        model.add(BatchNormalization())
-        model.add(LeakyReLU())
         model.add(Dropout({{uniform(0, 1)}}))
     
     model.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=False))
@@ -94,6 +82,11 @@ def create_model(X_train, y_train, X_test, y_test):
     model.add(LeakyReLU())
     model.add(Dropout({{uniform(0, 1)}}))
     
+    for _ in range({{choice([0, 1, 2, 3, 4, 8, 16, 32])}}):
+        model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512])}}, kernel_initializer='TruncatedNormal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU())
+        model.add(Dropout({{uniform(0, 1)}}))
     
     for _ in range({{choice([0, 1, 2, 3, 4, 8, 16, 32])}}):
         model.add(Dense({{choice([4, 8, 16, 32, 64, 128, 256, 512])}}, kernel_initializer='TruncatedNormal'))
@@ -121,7 +114,7 @@ def create_model(X_train, y_train, X_test, y_test):
     model.compile(loss='mse', metrics=['mape'], optimizer='nadam')
                   #optimizer={{choice(['adadelta', 'adagrad', 'adam', 'nadam'])}})
     
-    early_stopping_monitor = EarlyStopping(patience=100) # Not using earlystopping monitor for now, that's why patience is high
+    early_stopping_monitor = EarlyStopping(patience=25) # Not using earlystopping monitor for now, that's why patience is high
     
     bs = {{choice([32, 64, 128, 256])}}
     
@@ -145,7 +138,7 @@ def create_model(X_train, y_train, X_test, y_test):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=500,
+              epochs=100,
               verbose=2,
               validation_split=0.2,
                        callbacks=[early_stopping_monitor, schedule])
@@ -165,7 +158,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=create_model, 
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=100,
+                                          max_evals=500,
                                           trials=Trials(),
                                           eval_space=True)
     

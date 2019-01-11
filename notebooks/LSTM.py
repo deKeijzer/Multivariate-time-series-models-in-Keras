@@ -58,63 +58,63 @@ def data():
     
 def create_model(X_train, y_train, X_test, y_test, look_back, num_features):
     model = Sequential()
-    model.add(CuDNNLSTM(32, input_shape=(look_back, num_features), return_sequences=True, kernel_initializer='TruncatedNormal'))
+    model.add(CuDNNLSTM(8, input_shape=(look_back, num_features), return_sequences=True, kernel_initializer='TruncatedNormal'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.257))
+    model.add(Dropout(0.135))
     
     #1
     for _ in range(0):
         model.add(CuDNNLSTM(16, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.276))   
+        model.add(Dropout(0))   
     #2
-    for _ in range(8):
-        model.add(CuDNNLSTM(8, kernel_initializer='TruncatedNormal', return_sequences=True))
-        model.add(BatchNormalization())
-        model.add(LeakyReLU())
-        model.add(Dropout(0.204))
-    #3
     for _ in range(0):
         model.add(CuDNNLSTM(4, kernel_initializer='TruncatedNormal', return_sequences=True))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.226))
+        model.add(Dropout(0.696))
+    #3
+    for _ in range(0):
+        model.add(CuDNNLSTM(8, kernel_initializer='TruncatedNormal', return_sequences=True))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU())
+        model.add(Dropout(0.752))
     #4
-    model.add(CuDNNLSTM(32, kernel_initializer='TruncatedNormal', return_sequences=False))
+    model.add(CuDNNLSTM(16, kernel_initializer='TruncatedNormal', return_sequences=False))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.372))
+    model.add(Dropout(0.069))
     
     #5
-    for _ in range(1):
-        model.add(Dense(4, kernel_initializer='TruncatedNormal'))
+    for _ in range(3):
+        model.add(Dense(128, kernel_initializer='TruncatedNormal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.352))
+        model.add(Dropout(0.240))
     #6
-    for _ in range(1):
-        model.add(Dense(256, kernel_initializer='TruncatedNormal'))
+    for _ in range(2):
+        model.add(Dense(8, kernel_initializer='TruncatedNormal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
-        model.add(Dropout(0.758))
+        model.add(Dropout(0.636))
     #7
-    model.add(Dense(1024, kernel_initializer='TruncatedNormal'))
+    model.add(Dense(16, kernel_initializer='TruncatedNormal'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
-    model.add(Dropout(0.207))
+    model.add(Dropout(0.420))
         
     model.add(Dense(1))
     
     model.compile(loss='mse', metrics=['mape'],
-                  optimizer='adagrad')
+                  optimizer='adam')
     
     early_stopping_monitor = EarlyStopping(patience=50000) # Not using earlystopping monitor for now, that's why patience is high
     bs = 256
     epoch_size = 14
-    schedule = SGDRScheduler(min_lr=4.2e-6, #1e-5
-                                     max_lr=3.5e-2, # 1e-2
+    schedule = SGDRScheduler(min_lr=8.3e-6, #1e-5
+                                     max_lr=3.3e-2, # 1e-2
                                      steps_per_epoch=np.ceil(epoch_size/bs),
                                      lr_decay=0.9,
                                      cycle_length=5, # 5
@@ -128,7 +128,7 @@ def create_model(X_train, y_train, X_test, y_test, look_back, num_features):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=28*10**3, # should take ~24 hours, 
+              epochs = 4*10**3, # shoudl take an hour
               verbose=1,
               validation_split=0.2,
                        callbacks=[schedule, checkpoint1, checkpoint2])

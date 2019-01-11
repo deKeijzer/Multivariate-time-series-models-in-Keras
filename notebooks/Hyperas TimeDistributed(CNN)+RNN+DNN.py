@@ -95,18 +95,18 @@ def create_model(X_train, y_train, X_test, y_test):
     
     # RNN Model
     rnn = Sequential()
-    rnn.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, input_shape=(look_back, num_features), return_sequences=True, kernel_initializer='TruncatedNormal'))
+    rnn.add(CuDNNLSTM({{choice([1, 2, 3, 4, 5, 6, 7, 8])}}, return_sequences=True, kernel_initializer='TruncatedNormal'))
     rnn.add(BatchNormalization())
     rnn.add(LeakyReLU())
     rnn.add(Dropout({{uniform(0, 1)}}))
     
     for _ in range({{choice([0, 1, 2, 3, 4, 8])}}):
-        rnn.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
+        rnn.add(CuDNNLSTM({{choice([4, 8])}}, kernel_initializer='TruncatedNormal', return_sequences=True))
         rnn.add(BatchNormalization())
         rnn.add(LeakyReLU())
         rnn.add(Dropout({{uniform(0, 1)}}))   
     
-    rnn.add(CuDNNLSTM({{choice([4, 8, 16, 32])}}, kernel_initializer='TruncatedNormal', return_sequences=False))
+    rnn.add(CuDNNLSTM({{choice([1, 2, 3, 4, 5, 6, 7, 8])}}, kernel_initializer='TruncatedNormal', return_sequences=False))
     rnn.add(BatchNormalization())
     rnn.add(LeakyReLU())
     rnn.add(Dropout({{uniform(0, 1)}}))
@@ -159,9 +159,9 @@ def create_model(X_train, y_train, X_test, y_test):
     model = Model(inputs=main_input, outputs=model)
     
     model.compile(loss='mse', metrics=['mape'],
-                  optimizer={{choice(['adadelta', 'adagrad', 'adam', 'nadam'])}})
+                  optimizer='nadam')
     
-    early_stopping_monitor = EarlyStopping(patience=5) # Not using earlystopping monitor for now, that's why patience is high
+    early_stopping_monitor = EarlyStopping(patience=15) # Not using earlystopping monitor for now, that's why patience is high
     
     bs = {{choice([32, 64, 128, 256])}}
     
@@ -178,6 +178,7 @@ def create_model(X_train, y_train, X_test, y_test):
     
     #bs = 256
     #epoch_size = 14
+    
     schedule = SGDRScheduler(min_lr={{uniform(1e-8, 1e-5)}}, #1e-5
                                      max_lr={{uniform(1e-3, 1e-1)}}, # 1e-2
                                      steps_per_epoch=np.ceil(epoch_size/bs),
@@ -187,13 +188,16 @@ def create_model(X_train, y_train, X_test, y_test):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=50,
+              epochs=100,
               verbose=1,
               validation_split=0.2,
                        callbacks=[early_stopping_monitor, schedule])
     
     #get the highest validation accuracy of the training epochs
-    val_loss = np.amin(result.history['val_loss'])
+    
+    hist = pd.DataFrame(result.history['val_loss']).fillna(9999) #replace nan with 9999
+    val_loss = np.amin(hist.values)
+    
     print('Best validation loss of epoch:', val_loss)
     
     
@@ -207,7 +211,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=create_model, 
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=10,
+                                          max_evals=100,
                                           trials=Trials(),
                                           eval_space=True)
     

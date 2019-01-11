@@ -107,7 +107,7 @@ def create_model(X_train, y_train, X_test, y_test, look_back, num_features):
     model.add(Dense(1))
     
     model.compile(loss='mse', metrics=['mape'],
-                  optimizer='adagrad')
+                  optimizer='nadam')
     
     early_stopping_monitor = EarlyStopping(patience=50000) # Not using earlystopping monitor for now, that's why patience is high
     bs = 64
@@ -127,7 +127,7 @@ def create_model(X_train, y_train, X_test, y_test, look_back, num_features):
 
     result = model.fit(X_train, y_train,
               batch_size=bs,
-              epochs=22*10**3, # should take 24h ish
+              epochs=4*10**3,
               verbose=1,
               validation_split=0.2,
                        callbacks=[schedule, checkpoint1, checkpoint2])
